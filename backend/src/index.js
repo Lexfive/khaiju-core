@@ -1,27 +1,28 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import express from 'express'
+import cors from 'cors'
+import cookieParser from 'cookie-parser'
+import dotenv from 'dotenv'
+import { PrismaClient } from '@prisma/client'
 
-import authRoutes from './routes/auth.routes.js';
-import kpiRoutes from './routes/kpi.routes.js';
-import transactionRoutes from './routes/transaction.routes.js';
-import categoryRoutes from './routes/category.routes.js';
-import accountRoutes from './routes/account.routes.js';
-import reportRoutes from './routes/report.routes.js';
-import errorMiddleware from './middlewares/error.middleware.js';
+import authRoutes from './routes/auth.routes.js'
+import kpiRoutes from './routes/kpi.routes.js'
+import transactionRoutes from './routes/transaction.routes.js'
+import categoryRoutes from './routes/category.routes.js'
+import accountRoutes from './routes/account.routes.js'
+import reportRoutes from './routes/report.routes.js'
+import errorMiddleware from './middlewares/error.middleware.js'
 
-dotenv.config();
-const prisma = new PrismaClient();
-const app = express();
+dotenv.config()
+const prisma = new PrismaClient()
+const app = express()
 
 // ═══════════════════════════════════════════════════════════
 // 🔧 VPS Configuration - Trust Proxy
 // ═══════════════════════════════════════════════════════════
 // Necessário quando rodando atrás de NGINX/Traefik
 if (process.env.TRUST_PROXY === 'true') {
-  app.set('trust proxy', 1);
-  console.log('🔐 Trust proxy enabled (VPS mode)');
+  app.set('trust proxy', 1)
+  console.log('🔐 Trust proxy enabled (VPS mode)')
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -51,10 +52,11 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-};
+}
 
-app.use(cors(corsOptions));
-app.use(express.json());
+app.use(cors(corsOptions))
+app.use(express.json())
+app.use(cookieParser()) // ✅ Parser de cookies para httpOnly auth
 
 // ═══════════════════════════════════════════════════════════
 // 🏥 Health Check Endpoint
