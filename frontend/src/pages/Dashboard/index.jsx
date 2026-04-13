@@ -2,6 +2,7 @@ import { RefreshCw, TrendingUp, TrendingDown, Wallet, PiggyBank } from 'lucide-r
 import { useData } from '@/data/DataProvider'
 import { useToast } from '@/data/ToastProvider'
 import { currency, currencyCompact, percent, dateShort } from '@/utils/format'
+import { safeNumber, safeKpis, safeArray } from '@/utils/safeData'
 import { Card, KpiCard, Badge, Button, PageHeader, SectionCard, ErrorState } from '@/components/ui'
 import { Sk, SkCard, SkKpiRow, SkPageHeader, SkChart } from '@/components/skeleton'
 import { AreaChartWidget } from '@/components/charts'
@@ -115,9 +116,12 @@ export default function Dashboard() {
     )
   }
 
+  // ✅ Proteger dados de KPIs contra null/undefined
+  const safeKpisData = safeKpis(kpis)
+  const savingsRate = safeNumber(kpis?.savingsRate ?? kpis?.taxaPoupanca, 0)
   const savingsColor =
-    kpis?.savingsRate >= 20 ? 'var(--accent-success)'
-    : kpis?.savingsRate >= 10 ? 'var(--accent-warning)'
+    savingsRate >= 20 ? 'var(--accent-success)'
+    : savingsRate >= 10 ? 'var(--accent-warning)'
     : 'var(--accent-danger)'
 
   return (
@@ -134,10 +138,10 @@ export default function Dashboard() {
 
       {/* KPIs */}
       <div className="k-grid-4" style={{ marginBottom: 24 }}>
-        <KpiCard label="Saldo Total"      value={currency(kpis.saldo)}        delta={8.2}   icon={Wallet}     color="var(--accent-light)"   sub="vs. mês anterior" />
-        <KpiCard label="Receitas"         value={currency(kpis.receitas)}      delta={12.4}  icon={TrendingUp} color="var(--accent-success)" sub="este mês" />
-        <KpiCard label="Despesas"         value={currency(kpis.despesas)}      delta={-3.1}  icon={TrendingDown} color="var(--accent-danger)"  sub="este mês" />
-        <KpiCard label="Taxa de Poupança" value={percent(kpis.savingsRate)}                  icon={PiggyBank}  color={savingsColor}           sub="da receita total" />
+        <KpiCard label="Saldo Total"      value={currency(safeKpisData.saldo)}        delta={8.2}   icon={Wallet}     color="var(--accent-light)"   sub="vs. mês anterior" />
+        <KpiCard label="Receitas"         value={currency(safeKpisData.receitas)}      delta={12.4}  icon={TrendingUp} color="var(--accent-success)" sub="este mês" />
+        <KpiCard label="Despesas"         value={currency(safeKpisData.despesas)}      delta={-3.1}  icon={TrendingDown} color="var(--accent-danger)"  sub="este mês" />
+        <KpiCard label="Taxa de Poupança" value={percent(savingsRate)}                                 icon={PiggyBank}  color={savingsColor}           sub="da receita total" />
       </div>
 
       {/* Charts row */}

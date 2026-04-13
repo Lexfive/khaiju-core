@@ -1,6 +1,7 @@
 import { BarChart3, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
 import { useData } from '@/data/DataProvider'
 import { currency, currencyCompact, percent } from '@/utils/format'
+import { safeNumber, safeArray } from '@/utils/safeData'
 import { Card, KpiCard, Badge, PageHeader, SectionCard, ErrorState } from '@/components/ui'
 import { SkKpiRow, SkPageHeader, SkChart, SkCard, SkTable, Sk } from '@/components/skeleton'
 import { AreaChartWidget, BarChartWidget, PieChartWidget } from '@/components/charts'
@@ -35,21 +36,31 @@ export default function Relatorios() {
     )
   }
 
-  const lastM = series?.[series.length - 1]
-  const prevM = series?.[series.length - 2]
-  const dR = prevM ? ((lastM.receitas - prevM.receitas) / prevM.receitas) * 100 : 0
-  const dD = prevM ? ((lastM.despesas - prevM.despesas) / prevM.despesas) * 100 : 0
-  const dS = prevM ? ((lastM.saldo    - prevM.saldo)    / prevM.saldo)    * 100 : 0
+  // ✅ Proteger acessos a dados de séries
+  const safeSeries = safeArray(series)
+  const lastM = safeSeries[safeSeries.length - 1] || {}
+  const prevM = safeSeries[safeSeries.length - 2] || {}
+  
+  const lastRec = safeNumber(lastM.receitas, 0)
+  const lastDesp = safeNumber(lastM.despesas, 0)
+  const lastSaldo = safeNumber(lastM.saldo, 0)
+  const prevRec = safeNumber(prevM.receitas, 1) // Evitar divisão por zero
+  const prevDesp = safeNumber(prevM.despesas, 1)
+  const prevSaldo = safeNumber(prevM.saldo, 1)
+  
+  const dR = prevRec > 0 ? ((lastRec - prevRec) / prevRec) * 100 : 0
+  const dD = prevDesp > 0 ? ((lastDesp - prevDesp) / prevDesp) * 100 : 0
+  const dS = prevSaldo !== 0 ? ((lastSaldo - prevSaldo) / Math.abs(prevSaldo)) * 100 : 0
 
   return (
     <div className="k-page-enter">
       <PageHeader title="Relatórios" subtitle="Consolidado financeiro · últimos 6 meses" />
 
       <div className="k-grid-4" style={{ marginBottom: 24 }}>
-        <KpiCard label="Receitas (Out)"  value={currency(lastM?.receitas)} delta={dR} icon={TrendingUp}   color="var(--accent-success)" />
-        <KpiCard label="Despesas (Out)"  value={currency(lastM?.despesas)} delta={dD} icon={TrendingDown}  color="var(--accent-danger)"  />
-        <KpiCard label="Saldo (Out)"     value={currency(lastM?.saldo)}    delta={dS} icon={DollarSign}   color="var(--accent-light)"   />
-        <KpiCard label="Taxa Poupança"   value={percent(kpis?.savingsRate)}            icon={BarChart3}    color="var(--accent-info)"    sub="receita total" />
+        <KpiCard label="Receitas (Out)"  value={currency(lastRec)} delta={dR} icon={TrendingUp}   color="var(--accent-success)" />
+        <KpiCard label="Despesas (Out)"  value={currency(lastDesp)} delta={dD} icon={TrendingDown}  color="var(--accent-danger)"  />
+        <KpiCard label="Saldo (Out)"     value={currency(lastSaldo)}    delta={dS} icon={DollarSign}   color="var(--accent-light)"   />
+        <KpiCard label="Taxa Poupança"   value={percent(safeNumber(kpis?.savingsRate, 0))}            icon={BarChart3}    color="var(--accent-info)"    sub="receita total" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
@@ -100,9 +111,9 @@ export default function Relatorios() {
               <span key={h} style={TH}>{h}</span>
             ))}
           </div>
-          {report?.map((row, i) => {
+          {safeArray(report).map((row, i) => {
             const isLast   = i === report.length - 1
-            const saldoPos = row.saldo >= 0
+            const saldoPos = safeNumber(row?.saldo, 0) >= 0
             const bgBase   = isLast ? 'rgba(82,20,217,0.07)' : i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'
             return (
               <div
@@ -124,21 +135,21 @@ export default function Relatorios() {
                   {isLast && <Badge variant="purple" size="xs">Atual</Badge>}
                 </span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent-success)', alignSelf: 'center' }}>
-                  {currency(row.receitas)}
+                  {currency(safeNumber(row?.receitas, 0))}
                 </span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent-danger)', alignSelf: 'center' }}>
-                  {currency(row.despesas)}
+                  {currency(safeNumber(row?.despesas, 0))}
                 </span>
                 <span style={{
                   fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600,
                   color: saldoPos ? 'var(--text-primary)' : 'var(--accent-danger)',
                   alignSelf: 'center',
                 }}>
-                  {currency(row.saldo)}
+                  {currency(safeNumber(row?.saldo, 0))}
                 </span>
                 <span style={{
                   fontSize: 12, fontWeight: 600, alignSelf: 'center',
-                  color: parseFloat(row.margem) >= 20 ? 'var(--accent-success)' : 'var(--accent-warning)',
+                  color: parseFloat(row?.margem || 0) >= 20 ? 'var(--accent-success)' : 'var(--accent-warning)',
                 }}>
                   {row.margem}%
                 </span>
