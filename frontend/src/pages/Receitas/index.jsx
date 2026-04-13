@@ -1,4 +1,5 @@
 import { TrendingUp, DollarSign, Hash } from 'lucide-react'
+import { useMemo } from 'react'
 import { useData } from '@/data/DataProvider'
 import { currency, currencyCompact, dateShort } from '@/utils/format'
 import { Card, KpiCard, Badge, PageHeader, SectionCard, ErrorState } from '@/components/ui'
@@ -37,14 +38,27 @@ export default function Receitas() {
     )
   }
 
-  const total  = transactions?.reduce((s, t) => s + t.amount, 0) || 0
-  const maior  = transactions?.length ? Math.max(...transactions.map(t => t.amount)) : 0
-  const mediaM = total / 6
+  // ✅ Performance: useMemo for expensive calculations
+  const { total, maior, mediaM, byCategory, sortedByCategory } = useMemo(() => {
+    const computedTotal = transactions?.reduce((s, t) => s + t.amount, 0) || 0
+    const computedMaior = transactions?.length ? Math.max(...transactions.map(t => t.amount)) : 0
+    const computedMediaM = computedTotal / 6
 
-  const byCategory = transactions?.reduce((acc, t) => {
-    acc[t.category] = (acc[t.category] || 0) + t.amount
-    return acc
-  }, {}) || {}
+    const computedByCategory = transactions?.reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + t.amount
+      return acc
+    }, {}) || {}
+
+    const sorted = Object.entries(computedByCategory).sort((a, b) => b[1] - a[1])
+
+    return {
+      total: computedTotal,
+      maior: computedMaior,
+      mediaM: computedMediaM,
+      byCategory: computedByCategory,
+      sortedByCategory: sorted,
+    }
+  }, [transactions])
 
   return (
     <div className="k-page-enter">
@@ -69,20 +83,18 @@ export default function Receitas() {
         {/* By origin */}
         <SectionCard title="Por Origem">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {Object.entries(byCategory)
-              .sort((a, b) => b[1] - a[1])
-              .map(([cat, val]) => {
-                const pct = (val / total) * 100
-                return (
-                  <div key={cat}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                        {CAT_LABELS[cat] || cat}
-                      </span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
-                        {pct.toFixed(0)}%
-                      </span>
-                    </div>
+            {sortedByCategory.map(([cat, val]) => {
+              const pct = (val / total) * 100
+              return (
+                <div key={cat}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                      {CAT_LABELS[cat] || cat}
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
+                      {pct.toFixed(0)}%
+                    </span>
+                  </div>
                     <div className="k-progress-track">
                       <div
                         className="k-progress-fill"

@@ -57,7 +57,7 @@ export function DataProvider({ children }) {
 
   const setKeyState = useCallback((key, patch) => {
     setStates(prev => ({ ...prev, [key]: { ...(prev[key] || {}), ...patch } }))
-  }, [])
+  }, []) // Stable - uses setState callback, no external deps needed
 
   // ── fetch + cache a single key ──────────────────────────────────────
   const fetchKey = useCallback(async (selector, filters, cacheKey, force = false) => {
@@ -134,7 +134,8 @@ export function useData(selector, filters = {}) {
 
   useEffect(() => {
     ctx.fetchKey(selector, filters, cacheKey)
-  }, [cacheKey]) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheKey]) // Intentionally minimal - cacheKey changes when selector/filters change
 
   return {
     data:       ctx.getData(selector, filters),

@@ -16,14 +16,13 @@ class ApiClient {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      credentials: 'include', // ✅ Security: Use httpOnly cookies instead of localStorage
       ...options,
     }
 
-    // Adicionar token JWT se existir
-    const token = localStorage.getItem('khaiju_token')
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`
-    }
+    // NOTE: Token authentication now handled via httpOnly cookies
+    // This protects against XSS attacks as cookies are not accessible via JavaScript
+    // Backend should set: res.cookie('token', jwt, { httpOnly: true, secure: true, sameSite: 'strict' })
 
     try {
       const response = await fetch(url, config)

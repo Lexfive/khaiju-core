@@ -29,7 +29,7 @@ export function ToastProvider({ children }) {
     clearTimeout(timers.current[id])
     delete timers.current[id]
     setToasts(p => p.filter(t => t.id !== id))
-  }, [])
+  }, []) // Stable - uses setState callback
 
   const push = useCallback((message, type = 'info', duration) => {
     const id = ++uid
@@ -37,7 +37,7 @@ export function ToastProvider({ children }) {
     setToasts(p => [...p.slice(-4), { id, message, type, dur }]) // max 5 toasts
     timers.current[id] = setTimeout(() => dismiss(id), dur)
     return id
-  }, [dismiss])
+  }, [dismiss]) // dismiss is stable
 
   const toast = {
     success: (msg, dur) => push(msg, 'success', dur),

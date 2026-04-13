@@ -44,7 +44,7 @@ export function SkChart({ h = 240, style = {} }) {
   return (
     <div style={{ height: h, display: 'flex', alignItems: 'flex-end', gap: 8, padding: '16px 0', ...style }}>
       {heights.map((pct, i) => (
-        <div key={i} style={{
+        <div key={`sk-bar-${i}`} style={{
           flex: 1,
           height: `${pct}%`,
           ...SK,
