@@ -1,0 +1,124 @@
+# ════════════════════════════════════════════════════════════
+# 🚀 Khaiju - Sistema Financeiro Empresarial
+# Versão VPS - Produção com Reverse Proxy
+# ════════════════════════════════════════════════════════════
+
+version: '3.9'
+
+services:
+  # ──────────────────────────────────────────────────────────
+  # 🗄️ PostgreSQL Database
+  # ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: khaiju_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: khaiju
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: khaiju_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    # ⚠️ NÃO EXPOR PORTA EXTERNAMENTE EM VPS
+    # Apenas comunicação interna via rede Docker
+    expose:
+      - "5432"
+    volumes:
+      - khaiju_postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U khaiju -d khaiju_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - khaiju_network
+
+  # ──────────────────────────────────────────────────────────
+  # 🔧 Backend API (Node.js + Express + Prisma)
+  # ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: khaiju_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://khaiju:${POSTGRES_PASSWORD}@postgres:5432/khaiju_db?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 7d
+      # Configuração para VPS com proxy reverso
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      TRUST_PROXY: "true"
+      API_BASE_URL: ${API_BASE_URL:-/api}
+    # Expor apenas internamente (acesso via frontend/proxy)
+    expose:
+      - "3001"
+    # ⚠️ Para debug/acesso direto, descomente a linha abaixo:
+    # ports:
+    #   - "${BACKEND_PORT:-3001}:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/prisma:/app/prisma
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - khaiju_network
+
+  # ──────────────────────────────────────────────────────────
+  # 🌐 Frontend (React + NGINX)
+  # ──────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Build-time variables para configuração do frontend
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    container_name: khaiju_frontend
+    restart: unless-stopped
+    # Porta customizável para evitar conflitos
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - khaiju_network
+    # Labels para Traefik (caso use)
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.khaiju.rule=Host(`${DOMAIN:-khaiju.localhost}`)"
+      - "traefik.http.routers.khaiju.entrypoints=websecure"
+      - "traefik.http.routers.khaiju.tls.certresolver=letsencrypt"
+      - "traefik.http.services.khaiju.loadbalancer.server.port=80"
+
+# ──────────────────────────────────────────────────────────
+# 💾 Volumes Persistentes
+# ──────────────────────────────────────────────────────────
+volumes:
+  khaiju_postgres_data:
+    driver: local
+    name: khaiju_postgres_data
+
+# ──────────────────────────────────────────────────────────
+# 🌐 Network
+# ──────────────────────────────────────────────────────────
+networks:
+  khaiju_network:
+    driver: bridge
+    name: khaiju_network
+    # Para integração com proxy reverso externo
+  # external_proxy:
+  #   external: true
+  #   name: proxy_network

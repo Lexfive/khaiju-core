@@ -15,18 +15,63 @@ dotenv.config();
 const prisma = new PrismaClient();
 const app = express();
 
-app.use(cors());
+// ═══════════════════════════════════════════════════════════
+// 🔧 VPS Configuration - Trust Proxy
+// ═══════════════════════════════════════════════════════════
+// Necessário quando rodando atrás de NGINX/Traefik
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+  console.log('🔐 Trust proxy enabled (VPS mode)');
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🌐 CORS Configuration
+// ═══════════════════════════════════════════════════════════
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+      : ['*'];
+
+    // Permitir requisições sem origin (mobile apps, Postman, etc)
+    if (!origin) return callback(null, true);
+
+    // Modo desenvolvimento ou wildcard
+    if (allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+
+    // Verificar se origin está na lista permitida
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Health check endpoint para Docker
+// ═══════════════════════════════════════════════════════════
+// 🏥 Health Check Endpoint
+// ═══════════════════════════════════════════════════════════
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok', 
     service: 'Khaiju API', 
-    timestamp: new Date().toISOString() 
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
   });
 });
 
+// ═══════════════════════════════════════════════════════════
+// 📡 API Routes
+// ═══════════════════════════════════════════════════════════
 app.use('/auth', authRoutes);
 app.use('/kpis', kpiRoutes);
 app.use('/transactions', transactionRoutes);
@@ -34,13 +79,25 @@ app.use('/categories', categoryRoutes);
 app.use('/accounts', accountRoutes);
 app.use('/reports', reportRoutes);
 
+// ═══════════════════════════════════════════════════════════
+// ⚠️ Error Handler
+// ═══════════════════════════════════════════════════════════
 app.use(errorMiddleware);
 
+// ═══════════════════════════════════════════════════════════
+// 🚀 Server Start
+// ═══════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Khaiju API rodando em http://localhost:${PORT}`);
-  console.log(`📊 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'PostgreSQL conectado' : 'Aguardando configuração'}`);
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('🚀 Khaiju API Server');
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log(`📍 Port:        ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🗄️  Database:    ${process.env.DATABASE_URL ? 'PostgreSQL ✅' : 'Not configured ❌'}`);
+  console.log(`🔐 CORS Origin: ${process.env.CORS_ORIGIN || 'Not configured (allowing all)'}`);
+  console.log(`🔒 Trust Proxy: ${process.env.TRUST_PROXY === 'true' ? 'Enabled ✅' : 'Disabled'}`);
+  console.log('═══════════════════════════════════════════════════════════');
 });
 
 export { prisma };
