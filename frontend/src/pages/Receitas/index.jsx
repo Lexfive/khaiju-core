@@ -15,7 +15,7 @@ const TH = { fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSp
 const GRID = '100px 1fr 140px 130px'
 
 export default function Receitas() {
-  const { data: transactions, isLoading, error, refetch } = useData('transactions', { type: 'receita' })
+  const { data: transactions, isLoading, error, refetch } = useData('transactions', { type: 'income' })
   const { data: series } = useData('incomeSeries')
 
   if (isLoading && !transactions) {

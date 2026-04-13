@@ -1,7 +1,8 @@
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '@/data/AuthProvider'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp, TrendingDown,
-  BarChart3, Settings, Zap,
+  BarChart3, Settings, LogOut,
 } from 'lucide-react'
 
 const NAV = [
@@ -14,6 +15,14 @@ const NAV = [
 ]
 
 export function Sidebar() {
+  const { user, logout } = useAuth()
+
+  const handleLogout = () => {
+    if (confirm('Deseja realmente sair?')) {
+      logout()
+    }
+  }
+
   return (
     <>
       <style>{`

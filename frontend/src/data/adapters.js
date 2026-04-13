@@ -1,111 +1,51 @@
-// ─── DATA ADAPTER (Production Ready) ──────────────────────────────────
-// Camada de abstração entre o DataProvider e a API backend.
-// Usa dados mockados em desenvolvimento, API real em produção.
-// ─────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// 🔌 Data Adapters - Conexão REAL com API (SEM MOCK)
+// ═══════════════════════════════════════════════════════════════
 
 import { apiClient } from './apiClient'
-import mockSelectors from './mock'
 
-// Detectar se está em produção (build) ou desenvolvimento
-const IS_PRODUCTION = import.meta.env.PROD
-const USE_MOCK_DATA = !IS_PRODUCTION // Usar mock apenas em dev
-
-// ── Helper: Tentar API, fallback para mock em caso de erro ────────────
-async function fetchWithFallback(apiFn, mockFn) {
-  if (USE_MOCK_DATA) {
-    // Desenvolvimento: retornar mock diretamente
-    const result = mockFn()
-    return result instanceof Promise ? result : Promise.resolve(result)
-  }
-
-  // Produção: tentar API real
-  try {
-    return await apiFn()
-  } catch (error) {
-    console.warn('[Adapter] API falhou, usando mock como fallback:', error.message)
-    const result = mockFn()
-    return result instanceof Promise ? result : Promise.resolve(result)
-  }
-}
-
-// ── Adaptadores ────────────────────────────────────────────────────────
+// ✅ PRODUÇÃO: Sem fallback para mock
+// Se API falhar, erro deve ser mostrado ao usuário
 
 export const adapters = {
   /** GET /api/kpis */
-  kpis: () =>
-    fetchWithFallback(
-      () => apiClient.get('/kpis'),
-      () => mockSelectors.kpis()
-    ),
+  kpis: () => apiClient.get('/kpis'),
 
   /** GET /api/transactions */
-  transactions: (filters = {}) =>
-    fetchWithFallback(
-      () => {
-        const params = new URLSearchParams(filters).toString()
-        return apiClient.get(`/transactions${params ? `?${params}` : ''}`)
-      },
-      () => mockSelectors.transactions(filters)
-    ),
+  transactions: (filters = {}) => {
+    const params = new URLSearchParams(filters).toString()
+    return apiClient.get(`/transactions${params ? `?${params}` : ''}`)
+  },
 
   /** GET /api/transactions/recent */
-  recentTransactions: (limit = 5) =>
-    fetchWithFallback(
-      () => apiClient.get(`/transactions?limit=${limit}&sort=date:desc`),
-      () => mockSelectors.recentTransactions(limit)
-    ),
+  recentTransactions: (limit = 5) => 
+    apiClient.get(`/transactions?limit=${limit}&sort=date:desc`),
 
   /** GET /api/reports/monthly-series */
-  monthlySeries: () =>
-    fetchWithFallback(
-      () => apiClient.get('/reports/monthly-series'),
-      () => mockSelectors.monthlySeries()
-    ),
+  monthlySeries: () => apiClient.get('/reports/monthly-series'),
 
   /** GET /api/reports/income-series */
-  incomeSeries: () =>
-    fetchWithFallback(
-      () => apiClient.get('/reports/income-series'),
-      () => mockSelectors.incomeSeries()
-    ),
+  incomeSeries: () => apiClient.get('/reports/income-series'),
 
   /** GET /api/reports/expense-series */
-  expenseSeries: () =>
-    fetchWithFallback(
-      () => apiClient.get('/reports/expense-series'),
-      () => mockSelectors.expenseSeries()
-    ),
+  expenseSeries: () => apiClient.get('/reports/expense-series'),
 
   /** GET /api/reports/monthly */
-  monthlyReport: () =>
-    fetchWithFallback(
-      () => apiClient.get('/reports/monthly'),
-      () => mockSelectors.monthlyReport()
-    ),
+  monthlyReport: () => apiClient.get('/reports/monthly'),
 
-  /** GET /api/categories */
-  categories: () =>
-    fetchWithFallback(
-      () => apiClient.get('/categories/stats'),
-      () => mockSelectors.categories()
-    ),
+  /** GET /api/categories/stats */
+  categories: () => apiClient.get('/categories/stats'),
 
-  /** GET /api/goals (mock-only por enquanto) */
-  goals: () =>
-    fetchWithFallback(
-      () => apiClient.get('/goals').catch(() => mockSelectors.goals()),
-      () => mockSelectors.goals()
-    ),
+  /** GET /api/goals (placeholder até implementar) */
+  goals: () => apiClient.get('/goals').catch(() => ({ goals: [] })),
 
-  /** GET /api/budget (mock-only por enquanto) */
-  budget: () =>
-    fetchWithFallback(
-      () => apiClient.get('/budget').catch(() => mockSelectors.budget()),
-      () => mockSelectors.budget()
-    ),
+  /** GET /api/budget (placeholder até implementar) */
+  budget: () => apiClient.get('/budget').catch(() => ({ categories: [] })),
 }
 
-// ── Mutações (POST/PUT/DELETE) ─────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// ✏️ Mutations (POST/PUT/DELETE)
+// ═══════════════════════════════════════════════════════════════
 
 export const mutations = {
   /** POST /api/transactions */
@@ -119,22 +59,6 @@ export const mutations = {
   /** DELETE /api/transactions/:id */
   deleteTransaction: (id) =>
     apiClient.delete(`/transactions/${id}`),
-
-  /** PUT /api/goals/:id */
-  updateGoal: (id, payload) =>
-    apiClient.put(`/goals/${id}`, payload),
-
-  /** PUT /api/budget/:category */
-  updateBudget: (category, payload) =>
-    apiClient.put(`/budget/${category}`, payload),
-
-  /** POST /api/auth/login */
-  login: (email, password) =>
-    apiClient.post('/auth/login', { email, password }),
-
-  /** POST /api/auth/register */
-  register: (name, email, password) =>
-    apiClient.post('/auth/register', { name, email, password }),
 
   /** POST /api/categories */
   createCategory: (payload) =>
