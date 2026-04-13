@@ -1,0 +1,100 @@
+# ════════════════════════════════════════════════════════════
+# 🚀 Khaiju - Sistema Financeiro Empresarial
+# Orquestração completa para ambiente local (on-premise)
+# ════════════════════════════════════════════════════════════
+
+version: '3.9'
+
+services:
+  # ──────────────────────────────────────────────────────────
+  # 🗄️ PostgreSQL Database
+  # ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: khaiju-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: khaiju
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-khaiju2024!secure}
+      POSTGRES_DB: khaiju_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U khaiju -d khaiju_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - khaiju-network
+
+  # ──────────────────────────────────────────────────────────
+  # 🔧 Backend API (Node.js + Express + Prisma)
+  # ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: khaiju-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://khaiju:${POSTGRES_PASSWORD:-khaiju2024!secure}@postgres:5432/khaiju_db?schema=public
+      JWT_SECRET: ${JWT_SECRET:-khaiju-jwt-secret-change-in-production-2024}
+      JWT_EXPIRES_IN: 7d
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - khaiju-network
+
+  # ──────────────────────────────────────────────────────────
+  # 🌐 Frontend (React + NGINX)
+  # ──────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: khaiju-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - khaiju-network
+
+# ──────────────────────────────────────────────────────────
+# 💾 Volumes Persistentes
+# ──────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+    name: khaiju_postgres_data
+
+# ──────────────────────────────────────────────────────────
+# 🌐 Network
+# ──────────────────────────────────────────────────────────
+networks:
+  khaiju-network:
+    driver: bridge
+    name: khaiju_network
