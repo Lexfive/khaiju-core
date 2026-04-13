@@ -48,16 +48,12 @@ services:
       DATABASE_URL: postgresql://khaiju:${POSTGRES_PASSWORD}@postgres:5432/khaiju_db?schema=public
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 7d
-      # Configuração para VPS com proxy reverso
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       TRUST_PROXY: "true"
       API_BASE_URL: ${API_BASE_URL:-/api}
-    # Expor apenas internamente (acesso via frontend/proxy)
+    # Porta interna do container, não conflita com nada
     expose:
       - "3001"
-    # ⚠️ Para debug/acesso direto, descomente a linha abaixo:
-    # ports:
-    #   - "${BACKEND_PORT:-3001}:3001"
     depends_on:
       postgres:
         condition: service_healthy
