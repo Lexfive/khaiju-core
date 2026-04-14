@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { useData } from '@/data/DataProvider'
 import { currency, currencyCompact, dateShort } from '@/utils/format'
 import { Card, KpiCard, Badge, PageHeader, SectionCard, ErrorState } from '@/components/ui'
-import { SkKpiRow, SkPageHeader, SkChart, SkCard, SkTable, Sk } from '@/components/skeleton'
+import { SkKpiRow, SkPageHeader, SkChart, SkCard, SkTable } from '@/components/skeleton'
 import { AreaChartWidget } from '@/components/charts'
 
 const CAT_LABELS = {
@@ -15,10 +15,36 @@ const TH = { fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSp
 const GRID = '100px 1fr 140px 130px'
 
 export default function Receitas() {
-  const { data: transactions, isLoading, error, refetch } = useData('transactions', { type: 'income' })
-  const { data: series } = useData('incomeSeries')
+  const { data: rawTransactions, isLoading, error, refetch } = useData('transactions', { type: 'income' })
+  const { data: rawSeries } = useData('incomeSeries')
 
-  if (isLoading && !transactions) {
+  const transactions = Array.isArray(rawTransactions) ? rawTransactions : []
+  const series = Array.isArray(rawSeries) ? rawSeries : []
+
+  const { total, maior, mediaM, byCategory, sortedByCategory } = useMemo(() => {
+    const computedTotal = transactions.reduce((s, t) => s + (t?.amount || 0), 0)
+    const amounts = transactions.map(t => t?.amount || 0).filter(a => a > 0)
+    const computedMaior = amounts.length > 0 ? Math.max(...amounts) : 0
+    const computedMediaM = computedTotal / 6
+
+    const computedByCategory = transactions.reduce((acc, t) => {
+      const cat = t?.category || 'outros'
+      acc[cat] = (acc[cat] || 0) + (t?.amount || 0)
+      return acc
+    }, {})
+
+    const sorted = Object.entries(computedByCategory).sort((a, b) => b[1] - a[1])
+
+    return {
+      total: computedTotal,
+      maior: computedMaior,
+      mediaM: computedMediaM,
+      byCategory: computedByCategory,
+      sortedByCategory: sorted,
+    }
+  }, [transactions])
+
+  if (isLoading) {
     return (
       <div className="k-page-enter">
         <SkPageHeader />
@@ -37,28 +63,6 @@ export default function Receitas() {
       </div>
     )
   }
-
-  // ✅ Performance: useMemo for expensive calculations
-  const { total, maior, mediaM, byCategory, sortedByCategory } = useMemo(() => {
-    const computedTotal = transactions?.reduce((s, t) => s + t.amount, 0) || 0
-    const computedMaior = transactions?.length ? Math.max(...transactions.map(t => t.amount)) : 0
-    const computedMediaM = computedTotal / 6
-
-    const computedByCategory = transactions?.reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount
-      return acc
-    }, {}) || {}
-
-    const sorted = Object.entries(computedByCategory).sort((a, b) => b[1] - a[1])
-
-    return {
-      total: computedTotal,
-      maior: computedMaior,
-      mediaM: computedMediaM,
-      byCategory: computedByCategory,
-      sortedByCategory: sorted,
-    }
-  }, [transactions])
 
   return (
     <div className="k-page-enter">
@@ -80,21 +84,21 @@ export default function Receitas() {
       </SectionCard>
 
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20 }}>
-        {/* By origin */}
         <SectionCard title="Por Origem">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {sortedByCategory.map(([cat, val]) => {
-              const pct = (val / total) * 100
-              return (
-                <div key={cat}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                      {CAT_LABELS[cat] || cat}
-                    </span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
-                      {pct.toFixed(0)}%
-                    </span>
-                  </div>
+          {sortedByCategory.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {sortedByCategory.map(([cat, val]) => {
+                const pct = total > 0 ? (val / total) * 100 : 0
+                return (
+                  <div key={cat}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                        {CAT_LABELS[cat] || cat}
+                      </span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
+                        {pct.toFixed(0)}%
+                      </span>
+                    </div>
                     <div className="k-progress-track">
                       <div
                         className="k-progress-fill"
@@ -107,35 +111,45 @@ export default function Receitas() {
                   </div>
                 )
               })}
-          </div>
+            </div>
+          ) : (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              Nenhuma receita registrada
+            </div>
+          )}
         </SectionCard>
 
-        {/* Table */}
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 12, padding: '12px 20px', background: 'var(--surface-3)', borderBottom: '1px solid var(--border-subtle)' }}>
             {['Data', 'Descrição', 'Origem', 'Valor'].map(h => <span key={h} style={TH}>{h}</span>)}
           </div>
-          {transactions?.map((t, i) => (
-            <div
-              key={t.id}
-              className="k-table-row"
-              style={{
-                display: 'grid', gridTemplateColumns: GRID,
-                gap: 12, padding: '12px 20px',
-                borderBottom: '1px solid var(--border-subtle)',
-                background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
-              }}
-            >
-              <span style={{ fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center' }}>{dateShort(t.date)}</span>
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', alignSelf: 'center' }}>{t.description}</span>
-              <span style={{ alignSelf: 'center' }}>
-                <Badge variant="success" size="xs">{CAT_LABELS[t.category] || t.category}</Badge>
-              </span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600, color: 'var(--accent-success)', alignSelf: 'center' }}>
-                +{currency(t.amount)}
-              </span>
+          {transactions.length > 0 ? (
+            transactions.map((t, i) => (
+              <div
+                key={t?.id || i}
+                className="k-table-row"
+                style={{
+                  display: 'grid', gridTemplateColumns: GRID,
+                  gap: 12, padding: '12px 20px',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+                }}
+              >
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center' }}>{dateShort(t?.date)}</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', alignSelf: 'center' }}>{t?.description || 'Sem descrição'}</span>
+                <span style={{ alignSelf: 'center' }}>
+                  <Badge variant="success" size="xs">{CAT_LABELS[t?.category] || t?.category || 'Outros'}</Badge>
+                </span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600, color: 'var(--accent-success)', alignSelf: 'center' }}>
+                  +{currency(t?.amount || 0)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              Nenhuma transação de entrada encontrada
             </div>
-          ))}
+          )}
         </Card>
       </div>
     </div>

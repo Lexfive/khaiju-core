@@ -1,4 +1,5 @@
 import { TrendingDown, Receipt, Hash } from 'lucide-react'
+import { useMemo } from 'react'
 import { useData } from '@/data/DataProvider'
 import { currency, currencyCompact, dateShort } from '@/utils/format'
 import { Card, KpiCard, Badge, PageHeader, SectionCard, ErrorState } from '@/components/ui'
@@ -9,10 +10,36 @@ const TH = { fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSp
 const GRID = '100px 1fr 140px 130px'
 
 export default function Despesas() {
-  const { data: transactions, isLoading, error, refetch } = useData('transactions', { type: 'expense' })
-  const { data: categories } = useData('categories')
+  const { data: rawTransactions, isLoading, error, refetch } = useData('transactions', { type: 'expense' })
+  const transactions = Array.isArray(rawTransactions) ? rawTransactions : []
 
-  if (isLoading && !transactions) {
+  const { total, maior, qtd, byCategory, pieData } = useMemo(() => {
+    const computedTotal = transactions.reduce((s, t) => s + Math.abs(t?.amount || 0), 0)
+    const amounts = transactions.map(t => Math.abs(t?.amount || 0)).filter(a => a > 0)
+    const computedMaior = amounts.length > 0 ? Math.max(...amounts) : 0
+    const computedQtd = transactions.length
+
+    const computedByCategory = transactions.reduce((acc, t) => {
+      const cat = t?.category || 'outros'
+      acc[cat] = (acc[cat] || 0) + Math.abs(t?.amount || 0)
+      return acc
+    }, {})
+
+    const computedPieData = Object.entries(computedByCategory).map(([name, value]) => ({
+      name,
+      value,
+    }))
+
+    return {
+      total: computedTotal,
+      maior: computedMaior,
+      qtd: computedQtd,
+      byCategory: computedByCategory,
+      pieData: computedPieData,
+    }
+  }, [transactions])
+
+  if (isLoading) {
     return (
       <div className="k-page-enter">
         <SkPageHeader />
@@ -35,10 +62,6 @@ export default function Despesas() {
     )
   }
 
-  const total = transactions?.reduce((s, t) => s + Math.abs(t.amount), 0) || 0
-  const maior = transactions?.length ? Math.max(...transactions.map(t => Math.abs(t.amount))) : 0
-  const qtd   = transactions?.length || 0
-
   return (
     <div className="k-page-enter">
       <PageHeader title="Despesas" subtitle="Todas as saídas · Outubro 2024" />
@@ -50,66 +73,84 @@ export default function Despesas() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 20, marginBottom: 20 }}>
-        <SectionCard title="Distribuição" subtitle="Por categoria">
-          <PieChartWidget data={categories || []} height={260} formatter={currencyCompact} />
+        <SectionCard title="Por Categoria">
+          {pieData.length > 0 ? (
+            <PieChartWidget data={pieData} height={240} />
+          ) : (
+            <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              Nenhum dado disponível
+            </div>
+          )}
         </SectionCard>
 
-        <SectionCard title="Ranking de Categorias">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-            {categories?.map((c, i) => (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{
-                  width: 22, height: 22, borderRadius: 'var(--radius-xs)',
-                  background: 'var(--surface-4)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', flexShrink: 0,
-                }}>
-                  {i + 1}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{c.label}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      {currency(c.value)}
-                    </span>
-                  </div>
-                  <div className="k-progress-track" style={{ height: 4 }}>
-                    <div className="k-progress-fill" style={{ width: `${c.percent}%`, background: c.color, opacity: 0.8 }} />
-                  </div>
-                </div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: c.color, minWidth: 36, textAlign: 'right', flexShrink: 0 }}>
-                  {c.percent.toFixed(0)}%
-                </span>
-              </div>
-            ))}
-          </div>
+        <SectionCard title="Top 5 Categorias">
+          {Object.keys(byCategory).length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {Object.entries(byCategory)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([cat, val]) => {
+                  const pct = total > 0 ? (val / total) * 100 : 0
+                  return (
+                    <div key={cat}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{cat}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
+                          {pct.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="k-progress-track">
+                        <div
+                          className="k-progress-fill"
+                          style={{ width: `${pct}%`, background: 'linear-gradient(90deg, var(--accent-danger), #e05c7a)' }}
+                        />
+                      </div>
+                      <div style={{ marginTop: 3, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                        {currency(val)}
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          ) : (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              Nenhuma despesa registrada
+            </div>
+          )}
         </SectionCard>
       </div>
 
-      {/* Table */}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 12, padding: '12px 20px', background: 'var(--surface-3)', borderBottom: '1px solid var(--border-subtle)' }}>
           {['Data', 'Descrição', 'Categoria', 'Valor'].map(h => <span key={h} style={TH}>{h}</span>)}
         </div>
-        {transactions?.map((t, i) => (
-          <div
-            key={t.id}
-            className="k-table-row"
-            style={{
-              display: 'grid', gridTemplateColumns: GRID,
-              gap: 12, padding: '12px 20px',
-              borderBottom: '1px solid var(--border-subtle)',
-              background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
-            }}
-          >
-            <span style={{ fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center' }}>{dateShort(t.date)}</span>
-            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', alignSelf: 'center' }}>{t.description}</span>
-            <span style={{ alignSelf: 'center' }}><Badge variant="danger" size="xs">{t.category}</Badge></span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600, color: 'var(--accent-danger)', alignSelf: 'center' }}>
-              {currency(t.amount)}
-            </span>
+        {transactions.length > 0 ? (
+          transactions.map((t, i) => (
+            <div
+              key={t?.id || i}
+              className="k-table-row"
+              style={{
+                display: 'grid', gridTemplateColumns: GRID,
+                gap: 12, padding: '12px 20px',
+                borderBottom: '1px solid var(--border-subtle)',
+                background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+              }}
+            >
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center' }}>{dateShort(t?.date)}</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', alignSelf: 'center' }}>{t?.description || 'Sem descrição'}</span>
+              <span style={{ alignSelf: 'center' }}>
+                <Badge variant="danger" size="xs">{t?.category || 'Outros'}</Badge>
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600, color: 'var(--accent-danger)', alignSelf: 'center' }}>
+                -{currency(Math.abs(t?.amount || 0))}
+              </span>
+            </div>
+          ))
+        ) : (
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+            Nenhuma transação de saída encontrada
           </div>
-        ))}
+        )}
       </Card>
     </div>
   )
