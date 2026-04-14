@@ -51,9 +51,9 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       TRUST_PROXY: "true"
       API_BASE_URL: ${API_BASE_URL:-/api}
-    # Porta interna do container, não conflita com nada
-    expose:
-      - "3001"
+    # ✅ CRÍTICO: Expor porta 3001 para o host (Nginx VPS)
+    ports:
+      - "3001:3001"
     depends_on:
       postgres:
         condition: service_healthy

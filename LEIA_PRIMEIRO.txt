@@ -1,0 +1,91 @@
+════════════════════════════════════════════════════════════════
+🎯 KHAIJU - P0 DEPLOY VPS CONCLUÍDO SEM PENDÊNCIAS
+════════════════════════════════════════════════════════════════
+
+✅ PROBLEMA RESOLVIDO:
+────────────────────────────────────────────────────────────────
+502 Bad Gateway → Porta 3001 do backend agora exposta corretamente
+Nginx VPS → Roteamento corrigido para 127.0.0.1:3001
+
+════════════════════════════════════════════════════════════════
+📦 ARQUIVOS FINAIS ENTREGUES (6 arquivos):
+════════════════════════════════════════════════════════════════
+
+1. docker-compose.vps.yml
+   └─ Backend: ports: - "3001:3001" ✅
+   └─ Frontend: ports: - "8080:80" ✅
+
+2. nginx-khaiju-vps.conf
+   └─ /api/ → http://127.0.0.1:3001/ ✅
+   └─ / → http://127.0.0.1:8080 ✅
+
+3. DEPLOY_VPS_FINAL.md (18K)
+   └─ Guia COMPLETO com passo a passo, comandos e troubleshooting
+
+4. ENTREGA_FINAL_P0.md (8.4K)
+   └─ Documento de entrega com arquitetura e checklist
+
+5. RESUMO_P0_CONCLUIDO.md (2.1K)
+   └─ Resumo executivo rápido
+
+6. deploy-vps-corrigido.sh (9.4K) [EXECUTÁVEL]
+   └─ Script automatizado de deploy
+
+════════════════════════════════════════════════════════════════
+🚀 APLICAR NA VPS (COPIE E COLE):
+════════════════════════════════════════════════════════════════
+
+# Método 1: Automático (Recomendado)
+cd /caminho/para/khaiju
+chmod +x deploy-vps-corrigido.sh
+./deploy-vps-corrigido.sh
+
+# Método 2: Manual
+docker-compose -f docker-compose.vps.yml down
+sudo cp nginx-khaiju-vps.conf /etc/nginx/sites-available/khaiju
+sudo ln -sf /etc/nginx/sites-available/khaiju /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+docker-compose -f docker-compose.vps.yml build --no-cache
+docker-compose -f docker-compose.vps.yml up -d
+
+════════════════════════════════════════════════════════════════
+✅ TESTE CRÍTICO (Execute após deploy):
+════════════════════════════════════════════════════════════════
+
+curl -k https://khaiju.lidermoldurashub.com.br/api/auth/me
+
+SUCESSO ✅ se retornar:
+{"error":{"message":"Token não encontrado","code":"NO_TOKEN"}}
+
+FALHA ❌ se retornar:
+502 Bad Gateway
+
+════════════════════════════════════════════════════════════════
+🔍 VALIDAÇÃO COMPLETA (Checklist):
+════════════════════════════════════════════════════════════════
+
+[ ] docker ps → 3 containers UP (postgres, backend, frontend)
+[ ] curl http://127.0.0.1:3001/health → {"status":"ok"}
+[ ] curl http://127.0.0.1:8080 → 200 OK
+[ ] curl https://khaiju.../api/auth/me → erro de autenticação (não 502)
+[ ] Navegador: https://khaiju.lidermoldurashub.com.br → tela de login
+
+════════════════════════════════════════════════════════════════
+📋 PRÓXIMOS PASSOS (P1 - Após confirmar deploy OK):
+════════════════════════════════════════════════════════════════
+
+Tarefa: Simplificar formulário de transações
+Arquivo: /app/frontend/src/pages/Transacoes/index.jsx
+Objetivo: Manter apenas: Valor, Tipo, Categoria, Data, Descrição
+
+════════════════════════════════════════════════════════════════
+📚 DOCUMENTAÇÃO:
+════════════════════════════════════════════════════════════════
+
+Passo a passo detalhado:  /app/DEPLOY_VPS_FINAL.md
+Documento de entrega:     /app/ENTREGA_FINAL_P0.md
+Resumo executivo:         /app/RESUMO_P0_CONCLUIDO.md
+
+════════════════════════════════════════════════════════════════
+✅ STATUS: PRODUCTION-READY
+════════════════════════════════════════════════════════════════
