@@ -26,32 +26,34 @@ if (process.env.TRUST_PROXY === 'true') {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 🌐 CORS Configuration
+// 🌐 CORS Configuration (VPS Production)
 // ═══════════════════════════════════════════════════════════
 const corsOptions = {
   origin: (origin, callback) => {
+    // Lista de origens permitidas
     const allowedOrigins = process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-      : ['*'];
+      : []
 
-    // Permitir requisições sem origin (mobile apps, Postman, etc)
-    if (!origin) return callback(null, true);
-
-    // Modo desenvolvimento ou wildcard
-    if (allowedOrigins.includes('*')) {
-      return callback(null, true);
+    // ✅ PRODUÇÃO: Permitir origin do domínio
+    if (!origin) {
+      // Requisições do mesmo domínio (ex: curl, Postman)
+      return callback(null, true)
     }
 
-    // Verificar se origin está na lista permitida
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
+    // Verificar se origin está na lista OU usar wildcard em dev
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true)
     }
 
-    callback(new Error('Not allowed by CORS'));
+    // Se chegou aqui, origin não permitida
+    console.warn(`⚠️  CORS bloqueado: ${origin}`)
+    callback(new Error('Not allowed by CORS'))
   },
-  credentials: true,
+  credentials: true, // ✅ CRÍTICO para cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie'],
+  exposedHeaders: ['Set-Cookie'],
 }
 
 app.use(cors(corsOptions))

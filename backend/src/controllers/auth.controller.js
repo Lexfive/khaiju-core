@@ -4,16 +4,19 @@ import { prisma } from '../index.js'
 import ApiError from '../utils/ApiError.js'
 
 // ═══════════════════════════════════════════════════════════════
-// 🔐 Auth Controller - Login e Registro com httpOnly Cookies
+// 🔐 Auth Controller - Login e Registro (VPS Production)
 // ═══════════════════════════════════════════════════════════════
 
 const JWT_COOKIE_NAME = 'khaiju_token'
-const JWT_OPTIONS = {
+
+// ✅ Cookies otimizados para VPS com HTTPS + Nginx
+const getJwtOptions = () => ({
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  secure: true, // HTTPS obrigatório em produção
+  sameSite: 'lax', // 'lax' funciona melhor com Nginx
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
-}
+  path: '/', // Disponível em todas as rotas
+})
 
 /**
  * Login - Autenticação de usuário
@@ -50,7 +53,10 @@ export const login = async (req, res, next) => {
     )
 
     // Setar cookie httpOnly
-    res.cookie(JWT_COOKIE_NAME, token, JWT_OPTIONS)
+    res.cookie(JWT_COOKIE_NAME, token, getJwtOptions())
+
+    // Log de sucesso (debug)
+    console.log(`✅ Login: ${user.email} (cookie setado)`)
 
     // Retornar dados do usuário (sem senha)
     res.json({
@@ -62,6 +68,7 @@ export const login = async (req, res, next) => {
       },
     })
   } catch (error) {
+    console.error('❌ Login error:', error.message)
     next(error)
   }
 }
@@ -110,7 +117,9 @@ export const register = async (req, res, next) => {
     )
 
     // Setar cookie httpOnly
-    res.cookie(JWT_COOKIE_NAME, token, JWT_OPTIONS)
+    res.cookie(JWT_COOKIE_NAME, token, getJwtOptions())
+
+    console.log(`✅ Register: ${user.email} (cookie setado)`)
 
     // Retornar dados do usuário
     res.status(201).json({
@@ -122,6 +131,7 @@ export const register = async (req, res, next) => {
       },
     })
   } catch (error) {
+    console.error('❌ Register error:', error.message)
     next(error)
   }
 }
@@ -132,6 +142,8 @@ export const register = async (req, res, next) => {
  */
 export const me = async (req, res, next) => {
   try {
+    console.log('🔍 /auth/me - userId:', req.user?.id)
+
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
@@ -146,8 +158,11 @@ export const me = async (req, res, next) => {
       throw new ApiError(404, 'Usuário não encontrado', 'USER_NOT_FOUND')
     }
 
+    console.log('✅ /auth/me - user:', user.email)
+
     res.json({ user })
   } catch (error) {
+    console.error('❌ /auth/me error:', error.message)
     next(error)
   }
 }
@@ -158,9 +173,11 @@ export const me = async (req, res, next) => {
  */
 export const logout = async (req, res, next) => {
   try {
-    res.clearCookie(JWT_COOKIE_NAME, JWT_OPTIONS)
+    res.clearCookie(JWT_COOKIE_NAME, getJwtOptions())
+    console.log('✅ Logout - cookie removido')
     res.json({ success: true, message: 'Logout realizado com sucesso' })
   } catch (error) {
+    console.error('❌ Logout error:', error.message)
     next(error)
   }
 }
