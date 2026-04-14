@@ -26,7 +26,7 @@ if (process.env.TRUST_PROXY === 'true') {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 🌐 CORS Configuration (VPS Production)
+// 🌐 CORS Configuration (Dev + Production)
 // ═══════════════════════════════════════════════════════════
 const corsOptions = {
   origin: (origin, callback) => {
@@ -35,13 +35,18 @@ const corsOptions = {
       ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
       : []
 
-    // ✅ PRODUÇÃO: Permitir origin do domínio
+    // ✅ Permitir requisições sem origin (mesmo domínio, curl, Postman)
     if (!origin) {
-      // Requisições do mesmo domínio (ex: curl, Postman)
       return callback(null, true)
     }
 
-    // Verificar se origin está na lista OU usar wildcard em dev
+    // ✅ DEV: Permitir localhost e 127.0.0.1
+    const isDev = process.env.NODE_ENV !== 'production'
+    if (isDev && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      return callback(null, true)
+    }
+
+    // ✅ PROD: Verificar lista de origens permitidas
     if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
       return callback(null, true)
     }
@@ -50,7 +55,7 @@ const corsOptions = {
     console.warn(`⚠️  CORS bloqueado: ${origin}`)
     callback(new Error('Not allowed by CORS'))
   },
-  credentials: true, // ✅ CRÍTICO para cookies
+  credentials: true, // ✅ CRÍTICO para cookies httpOnly
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie'],
   exposedHeaders: ['Set-Cookie'],

@@ -9,14 +9,17 @@ import ApiError from '../utils/ApiError.js'
 
 const JWT_COOKIE_NAME = 'khaiju_token'
 
-// ✅ Cookies otimizados para VPS com HTTPS + Nginx
-const getJwtOptions = () => ({
-  httpOnly: true,
-  secure: true, // HTTPS obrigatório em produção
-  sameSite: 'lax', // 'lax' funciona melhor com Nginx
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
-  path: '/', // Disponível em todas as rotas
-})
+// ✅ Cookies adaptativos para dev + produção
+const getJwtOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production'
+  return {
+    httpOnly: true,
+    secure: isProduction, // HTTPS apenas em produção
+    sameSite: isProduction ? 'lax' : 'lax', // 'lax' permite navegação normal
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
+    path: '/', // Disponível em todas as rotas
+  }
+}
 
 /**
  * Login - Autenticação de usuário
