@@ -33,9 +33,11 @@ export const adapters = {
   },
 
   /** GET /api/transactions (recent) */
-  recentTransactions: (limit = 5) => 
-    apiClient.get(`/transactions?limit=${limit}`)
-      .then(res => res.data || res),
+  recentTransactions: (limit = 5) => {
+    const numLimit = typeof limit === 'number' ? limit : 5
+    return apiClient.get(`/transactions?limit=${numLimit}`)
+      .then(res => res.data || res)
+  },
 
   /** GET /api/reports - Séries mensais calculadas no backend */
   monthlySeries: () => apiClient.get('/reports')
