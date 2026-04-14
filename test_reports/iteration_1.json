@@ -1,0 +1,59 @@
+{
+  "summary": "Critical testing of Khaiju financial system. VPS deployment has OUTDATED FRONTEND BUILD causing black screen after login. Backend APIs work but frontend calls non-existent endpoints.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "/api/reports", "issue": "Returns 502 Bad Gateway when authenticated", "priority": "HIGH"},
+      {"endpoint": "/api/categories", "issue": "Returns 502 Bad Gateway when authenticated", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Dashboard", "issue": "BLACK SCREEN after login due to JavaScript TypeError: o.map is not a function", "selector": "N/A", "priority": "CRITICAL"},
+      {"component": "Navigation", "issue": "Cannot navigate to any tab - sidebar not visible due to crash", "selector": "N/A", "priority": "CRITICAL"}
+    ],
+    "integration_issues": [
+      {"flow": "Dashboard load", "issue": "Frontend calls /api/reports/monthly-series but backend only has /api/reports", "affected_selectors": ["Dashboard"]},
+      {"flow": "Dashboard load", "issue": "Frontend calls /api/goals which doesn't exist (404)", "affected_selectors": ["Dashboard"]},
+      {"flow": "Dashboard load", "issue": "Frontend calls /api/budget which doesn't exist (404)", "affected_selectors": ["Dashboard"]},
+      {"flow": "Dashboard load", "issue": "Frontend calls /api/categories/stats which doesn't exist (404)", "affected_selectors": ["Dashboard"]},
+      {"flow": "Transactions", "issue": "Frontend passes limit=[object Object] causing 502 - malformed query parameter", "affected_selectors": ["recentTransactions"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_1.json"],
+  "action_items": [
+    "CRITICAL: Rebuild and redeploy frontend to VPS - current deployed build is outdated and doesn't match source code",
+    "Fix /api/reports endpoint returning 502 on VPS",
+    "Fix /api/categories endpoint returning 502 on VPS",
+    "Verify adapters.js changes are in the deployed build (should call /api/reports not /api/reports/monthly-series)",
+    "Check why recentTransactions adapter passes object instead of number for limit parameter"
+  ],
+  "critical_code_review_comments": [
+    "VPS deployed frontend build is OUTDATED - source code has correct adapters.js but deployed JS bundle calls wrong endpoints",
+    "Backend /api/reports and /api/categories return 502 when authenticated - possible Prisma/DB connection issue on VPS",
+    "Frontend adapters.js line 36-38: recentTransactions passes filters object but backend expects limit as number"
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "60%", "frontend": "0%"},
+  "test_credentials": {
+    "email": "testuser_1776175005@test.com",
+    "password": "Test123!",
+    "note": "Created during testing via /api/auth/register"
+  },
+  "seed_data_creation": "Created test users via registration endpoint",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "VPS has outdated frontend build. After main agent rebuilds and redeploys, retest all navigation tabs. Backend /api/auth, /api/kpis, /api/transactions work. /api/reports and /api/categories return 502.",
+  "rca_of_the_issue": {
+    "root_cause": "VPS frontend build is outdated - deployed JS bundle calls endpoints that don't exist (/api/reports/monthly-series, /api/goals, /api/budget, /api/categories/stats) while source code adapters.js has correct endpoints",
+    "reproduction_steps": [
+      "1. Go to https://khaiju.lidermoldurashub.com.br/",
+      "2. Register new user or login",
+      "3. After successful auth, page shows black screen",
+      "4. Console shows TypeError: o.map is not a function",
+      "5. Network tab shows 404 errors for /api/goals, /api/budget, /api/reports/monthly-series"
+    ],
+    "mitigation": "Rebuild frontend with 'yarn build' and redeploy to VPS. Ensure the new build includes the corrected adapters.js"
+  }
+}
