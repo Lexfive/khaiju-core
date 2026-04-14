@@ -1,14 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/data/AuthProvider'
 import { Button, Input } from '@/components/ui'
 import { LogIn, UserPlus, Mail, Lock, User } from 'lucide-react'
 
-// ═══════════════════════════════════════════════════════════════
-// 🔐 Login Page - Autenticação e Registro
-// ═══════════════════════════════════════════════════════════════
-
 export default function LoginPage() {
-  const [mode, setMode] = useState('login') // 'login' ou 'register'
+  const [mode, setMode] = useState('login')
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,7 +13,15 @@ export default function LoginPage() {
   })
   const [localError, setLocalError] = useState(null)
 
-  const { login, register, loading } = useAuth()
+  const { login, register, loading, isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -27,6 +32,7 @@ export default function LoginPage() {
       if (!result.success) {
         setLocalError(result.error)
       }
+      // Não precisa redirecionar aqui - o useEffect acima faz isso
     } else {
       if (!formData.name) {
         setLocalError('Nome é obrigatório')
@@ -37,6 +43,7 @@ export default function LoginPage() {
       if (!result.success) {
         setLocalError(result.error)
       }
+      // Não precisa redirecionar aqui - o useEffect acima faz isso
     }
   }
 
