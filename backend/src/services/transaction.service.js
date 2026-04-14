@@ -1,4 +1,4 @@
-import { prisma } from '../index.js';
+import { prisma } from '../lib/prisma.js';
 
 export const getTransactions = async (userId, filters = {}) => {
   const { page = 1, limit = 20, search, startDate, endDate, categoryId, type } = filters;
