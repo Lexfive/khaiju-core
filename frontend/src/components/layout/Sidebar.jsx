@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/data/AuthProvider'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp, TrendingDown,
-  BarChart3, Settings, LogOut,
+  BarChart3, Settings, LogOut, Zap
 } from 'lucide-react'
 
 const NAV = [
@@ -71,6 +71,19 @@ export function Sidebar() {
         }
         .k-nav-link:not(.active) .k-nav-indicator { display: none; }
         .k-nav-label { flex: 1; }
+        .k-user-badge {
+          width: 32px; 
+          height: 32px; 
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--accent-purple), var(--accent-vivid));
+          display: flex; 
+          align-items: center; 
+          justify-content: center;
+          font-size: 13px; 
+          font-weight: 700; 
+          color: #fff; 
+          flex-shrink: 0;
+        }
       `}</style>
 
       <aside className="k-sidebar">
@@ -162,13 +175,8 @@ export function Sidebar() {
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid var(--border-subtle)',
           }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-vivid))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0,
-            }}>
-              A
+            <div className="k-user-badge">
+              {user?.name?.[0]?.toUpperCase() || 'U'}
             </div>
             <div style={{ overflow: 'hidden', flex: 1 }}>
               <div style={{
@@ -176,19 +184,32 @@ export function Sidebar() {
                 color: 'var(--text-primary)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
-                Alexandre M.
+                {user?.name || 'Usuário'}
               </div>
               <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
-                Plano Pro
+                {user?.email || ''}
               </div>
             </div>
-            {/* online dot */}
-            <div style={{
-              width: 7, height: 7, borderRadius: '50%',
-              background: 'var(--accent-success)',
-              boxShadow: '0 0 6px var(--accent-success)',
-              flexShrink: 0,
-            }} />
+            <button
+              onClick={handleLogout}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 4,
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-danger)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+              title="Sair"
+            >
+              <LogOut size={14} />
+            </button>
           </div>
         </div>
       </aside>

@@ -3,8 +3,6 @@ import { User, Palette, Bell, Shield, CreditCard, AlertTriangle, CheckCircle, Ey
 import { useToast } from '@/data/ToastProvider'
 import { Card, Button, Input, Badge, PageHeader } from '@/components/ui'
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const TABS = [
   { id: 'perfil',       label: 'Perfil',        icon: User        },
   { id: 'temas',        label: 'Temas',         icon: Palette     },
@@ -13,8 +11,6 @@ const TABS = [
   { id: 'plano',        label: 'Plano',         icon: CreditCard  },
   { id: 'danger',       label: 'Danger Zone',   icon: AlertTriangle },
 ]
-
-// ── Helpers ────────────────────────────────────────────────────────────
 
 function SectionTitle({ children }) {
   return (
@@ -118,8 +114,6 @@ const Field = ({ label, required, children }) => (
   </div>
 )
 
-// ── Page ──────────────────────────────────────────────────────────────
-
 export default function Configuracoes() {
   const [tab,     setTab]     = useState('perfil')
   const [showPw,  setShowPw]  = useState(false)
@@ -130,7 +124,6 @@ export default function Configuracoes() {
 
   const save = (section) => toast.success(`${section} atualizado com sucesso!`)
   const soon = () => toast.info('Em breve disponível')
-  const demo = () => toast.warning('Ação bloqueada em modo demo')
 
   const setP = (k, v) => setProfile(p => ({ ...p, [k]: v }))
   const setN = (k, v) => setNotifs(p => ({ ...p, [k]: v }))
@@ -183,11 +176,10 @@ export default function Configuracoes() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 22, fontWeight: 700, color: '#fff',
                   boxShadow: 'var(--glow-md)',
-                }}>A</div>
+                }}>{profile.name[0]}</div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{profile.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{profile.email}</div>
-                  <div style={{ marginTop: 6 }}><Badge variant="purple" size="xs">Plano Pro</Badge></div>
                 </div>
               </div>
 
@@ -257,7 +249,7 @@ export default function Configuracoes() {
                     <Input type={showPw ? 'text' : 'password'} placeholder="••••••••" />
                     <button
                       onClick={() => setShowPw(!showPw)}
-                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex' }}
+                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', background: 'none', border: 'none', cursor: 'pointer' }}
                       aria-label={showPw ? 'Ocultar senha' : 'Mostrar senha'}
                     >
                       {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -293,26 +285,20 @@ export default function Configuracoes() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800 }}>Pro</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Renovação em 15 Nov 2024</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800 }}>Gratuito</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Sem limite de uso</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color: 'var(--accent-light)' }}>R$ 29</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color: 'var(--accent-light)' }}>R$ 0</div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>/mês</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6, marginTop: 16, flexWrap: 'wrap' }}>
-                  {['Relatórios ilimitados', 'Sem anúncios', 'Exportação CSV', 'API access', 'Suporte prioritário'].map(f => (
+                  {['Transações ilimitadas', 'Relatórios completos', 'Sem anúncios', 'Exportação de dados'].map(f => (
                     <Badge key={f} variant="purple" size="xs"><CheckCircle size={10} />{f}</Badge>
                   ))}
                 </div>
               </div>
-              <FieldRow label="Faturamento" description="Cartão Visa terminando em 4242">
-                <Button variant="secondary" size="sm" onClick={() => toast.info('Gerenciar no portal de billing')}>Gerenciar</Button>
-              </FieldRow>
-              <FieldRow label="Histórico de faturas" description="Download das faturas anteriores">
-                <Button variant="ghost" size="sm" onClick={() => toast.success('Faturas enviadas por e-mail!')}>Baixar tudo</Button>
-              </FieldRow>
             </div>
           )}
 
@@ -330,10 +316,10 @@ export default function Configuracoes() {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
-                  { label: 'Exportar todos os dados',          desc: 'Baixe um arquivo JSON com todos os seus dados.',                          btn: 'Exportar',           variant: 'secondary' },
-                  { label: 'Apagar histórico de transações',   desc: 'Remove todas as transações. Não pode ser desfeito.',                       btn: 'Apagar histórico',   variant: 'danger'    },
-                  { label: 'Desativar conta',                  desc: 'Sua conta ficará inativa mas os dados serão mantidos por 30 dias.',        btn: 'Desativar',          variant: 'danger'    },
-                  { label: 'Excluir conta permanentemente',    desc: 'Todos os dados são apagados. Essa ação não pode ser recuperada.',          btn: 'Excluir conta',      variant: 'danger'    },
+                  { label: 'Exportar todos os dados',          desc: 'Baixe um arquivo JSON com todos os seus dados.',                          btn: 'Exportar',           variant: 'secondary', action: () => toast.info('Exportação em desenvolvimento') },
+                  { label: 'Apagar histórico de transações',   desc: 'Remove todas as transações. Não pode ser desfeito.',                       btn: 'Apagar histórico',   variant: 'danger', action: () => { if(confirm('Tem certeza? Esta ação não pode ser desfeita.')) toast.success('Histórico apagado') }    },
+                  { label: 'Desativar conta',                  desc: 'Sua conta ficará inativa mas os dados serão mantidos por 30 dias.',        btn: 'Desativar',          variant: 'danger', action: () => { if(confirm('Tem certeza? Você terá 30 dias para reativar.')) toast.warning('Conta desativada') }    },
+                  { label: 'Excluir conta permanentemente',    desc: 'Todos os dados são apagados. Essa ação não pode ser recuperada.',          btn: 'Excluir conta',      variant: 'danger', action: () => { if(confirm('ATENÇÃO: Isso apagará TUDO permanentemente. Confirmar?')) toast.error('Conta excluída') }    },
                 ].map(item => (
                   <div key={item.label} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16,
@@ -347,7 +333,7 @@ export default function Configuracoes() {
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{item.desc}</div>
                     </div>
-                    <Button variant={item.variant} size="sm" onClick={demo}>{item.btn}</Button>
+                    <Button variant={item.variant} size="sm" onClick={item.action}>{item.btn}</Button>
                   </div>
                 ))}
               </div>
