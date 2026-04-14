@@ -1,23 +1,16 @@
-# ────────────────────────────────────────────────────────────
-# Khaiju Backend - Production Dockerfile
-# ────────────────────────────────────────────────────────────
-
-FROM node:20-alpine AS base
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Instalar dependências
-COPY package*.json ./
-RUN npm install --production
+RUN apk add --no-cache openssl libc6-compat
 
-# Copiar código fonte
+COPY package*.json ./
+RUN npm install
+
 COPY . .
 
-# Gerar Prisma Client
 RUN npx prisma generate
 
-# Expor porta
 EXPOSE 3001
 
-# Comando de inicialização
-CMD ["sh", "-c", "npx prisma migrate deploy && node src/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]

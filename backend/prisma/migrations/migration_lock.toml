@@ -1,4 +1,1 @@
-{
-  "version": "5.15.0",
-  "dialect": "postgresql"
-}
+provider = "postgresql"
